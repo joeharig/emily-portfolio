@@ -69,6 +69,8 @@
 
     <!-- Include JS -->
     <script src="js/flipbook.min.js"></script>
+    <!-- Page image list generated at build time by scripts/build.mjs -->
+    <script src="js/books.js"></script>
 
     <script type="text/javascript">
       $(document).ready(function () {
@@ -76,7 +78,12 @@
           (str) => {
             $(`#${str}`).flipBook({
               // Layout Setting
-              pdfUrl: `pdf/${str}.pdf`,
+              // Pages are pre-rendered WebP images (see scripts/build.mjs), so the
+              // book shows the first spread right away instead of downloading and
+              // parsing the whole PDF in the browser. The PDF stays downloadable.
+              pages: window.FLIPBOOK_PAGES[str],
+              btnDownloadPdf: { enabled: true, url: `pdf/${str}.pdf` },
+              lightboxPreload: true,
               lightBox: true,
               layout: 3,
               currentPage: { vAlign: "bottom", hAlign: "left" },
@@ -108,6 +115,24 @@
             });
           }
         );
+
+        // Warm the cache with each book's opening pages once the landing page
+        // has finished loading, so opening a portfolio feels instant.
+        var warmUp = function () {
+          var warm = function () {
+            Object.keys(window.FLIPBOOK_PAGES).forEach(function (book) {
+              window.FLIPBOOK_PAGES[book].slice(0, 3).forEach(function (p) {
+                new Image().src = p.src;
+              });
+            });
+          };
+          "requestIdleCallback" in window
+            ? requestIdleCallback(warm, { timeout: 2000 })
+            : setTimeout(warm, 1000);
+        };
+        document.readyState === "complete"
+          ? warmUp()
+          : $(window).on("load", warmUp);
       });
     </script>
 
@@ -179,6 +204,7 @@
       }
       main p {
         max-width: 640px;
+        font-size: 18px;
         color: var(--text-3);
       }
       .portfolio-button {
@@ -245,7 +271,7 @@
           letter-spacing: 0.125em;
         }
         main p {
-          font-size: 12px;
+          font-size: 14px;
           max-width: 640px;
           color: var(--text-3);
         }
